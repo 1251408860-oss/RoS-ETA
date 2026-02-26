@@ -13,4 +13,4 @@ To facilitate reproducibility and provide a clear structure for reviewers, we ha
 | **Section 4.5** | Live protocol stack defense and rate-blocking testbed based on Mininet | [👉 mininet_testbed](./mininet_testbed) |
 
 ## 🛠️ Global Environment Overview
-The core modules of this framework are built upon Python 3.9. Specific dependencies (e.g., PyTorch, Scikit-learn) and Mininet topology configurations are meticulously documented within the `README.md` of each respective subdirectory.
+The core modules of this framework are built upon Python 3.9. Specific dependencies and Mininet topology configurations are meticulously documented within the `README.md` of each respective subdirectory.
