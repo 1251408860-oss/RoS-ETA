@@ -9,10 +9,8 @@ plt.rcParams['ps.fonttype'] = 42
 CSV_FILE = 'mawi/mawi_full_day.csv'
 CHUNK_SIZE = 1000000
 
-
 def process_chunk(chunk):
     chunk.columns = ['src_ip', 'dst_ip', 'src_port', 'dst_port', 'timestamp', 'len']
-
     chunk['flow_id'] = chunk['src_ip'].astype(str) + chunk['dst_ip'].astype(str) + \
                        chunk['src_port'].astype(str) + chunk['dst_port'].astype(str)
 
@@ -24,27 +22,29 @@ def process_chunk(chunk):
     )
     return stats
 
-
 def run_big_data():
-    global_stats = []
+    print("=== RoS-ETA: MAWI Full-Day Big Data Validation ===")
+    print(f"Reading and processing data in chunks: {CSV_FILE} ...")
 
+    global_stats = []
     reader = pd.read_csv(CSV_FILE, chunksize=CHUNK_SIZE, iterator=True)
 
     for i, chunk in enumerate(reader):
+        print(f"  Processing chunk {i + 1}...")
         stats = process_chunk(chunk)
 
         mask = (stats['duration'] > 0.1) & \
                (stats['total_bytes'] > 10000) & \
                (stats['total_pkts'] > 10)
-        valid_flows = stats[mask].copy()
+        
+        global_stats.append(stats[mask].copy())
 
-        global_stats.append(valid_flows)
-
+    print("Merging chunk results...")
     if not global_stats:
+        print("No valid data extracted. Exiting program.")
         return
 
     final_df = pd.concat(global_stats)
-
     final_df = final_df.groupby(final_df.index).agg({
         'duration': 'sum',
         'total_bytes': 'sum',
@@ -52,10 +52,12 @@ def run_big_data():
         'mean_len': 'mean'
     })
 
-    data = final_df
-    X = np.log10(data['total_bytes'].values)
-    Y = np.log10(data['duration'].values)
-    entropy_proxy = np.log1p(data['mean_len'].values)
+    print(f"Total number of valid physical flows extracted: {len(final_df)}")
+    print("Performing RANSAC fitting and generating plot...")
+
+    X = np.log10(final_df['total_bytes'].values)
+    Y = np.log10(final_df['duration'].values)
+    entropy_proxy = np.log1p(final_df['mean_len'].values)
 
     plt.figure(figsize=(12, 7))
 
@@ -81,12 +83,12 @@ def run_big_data():
 
     plt.xlabel(r'Log$_{10}$ (Traffic Volume $N$)', fontsize=14)
     plt.ylabel(r'Log$_{10}$ (Duration $T$)', fontsize=14)
-    plt.title(f'Full-Day Physical Validation on MAWI Backbone (N={len(data)})', fontsize=14)
+    plt.title(f'Full-Day Physical Validation on MAWI Backbone (N={len(final_df)})', fontsize=14)
     plt.legend(loc='upper left', bbox_to_anchor=(0.02, 0.98), frameon=True, framealpha=0.9)
     plt.grid(True, linestyle=':', alpha=0.6)
 
     plt.savefig('MAWI_Full_Day_Validation.pdf', dpi=300, bbox_inches='tight')
-
+    print("Plot successfully generated: MAWI_Full_Day_Validation.pdf")
 
 if __name__ == '__main__':
     run_big_data()
