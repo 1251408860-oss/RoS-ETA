@@ -1,4 +1,3 @@
-core_experiments/README.md
 # Core Experiments Heterogeneous Benchmark Evaluation
 
 ## Module Overview and Data Provenance
